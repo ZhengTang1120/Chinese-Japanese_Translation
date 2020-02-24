@@ -76,7 +76,7 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
                 if topi.item() in output_lang.index2word:
                     decoded_words.append(output_lang.index2word[topi.item()])
                 else:
-                    decoded_words.append(id2source[topi.item()]+"_SRC")   
+                    decoded_words.append(id2source[topi.item()])   
 
             decoder_input = topi.squeeze().detach()
 
