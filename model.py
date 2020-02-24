@@ -23,13 +23,13 @@ class EncoderRNN(nn.Module):
         return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, dropout_p=0.1):
+    def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.dropout_p = dropout_p
 
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.embedding = nn.Embedding(self.output_size + max_length, self.hidden_size)
         self.attn = nn.Linear(self.hidden_size, self.hidden_size, bias=False)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
@@ -40,7 +40,7 @@ class AttnDecoderRNN(nn.Module):
         self.ws = nn.Linear(self.hidden_size, 1, bias=False)
         self.wx = nn.Linear(self.hidden_size, 1)
 
-    def forward(self, input, hidden, encoder_outputs):#, pg_mat):
+    def forward(self, input, hidden, encoder_outputs, pg_mat):
         embedded = self.embedding(input).view(1, 1, -1)
         embedded = self.dropout(embedded)
 
@@ -53,9 +53,9 @@ class AttnDecoderRNN(nn.Module):
             , dim=1)
         attn_applied = torch.bmm(attn_weights.unsqueeze(0),
                                  encoder_outputs.unsqueeze(0))
-        # p_gen = torch.sigmoid(self.wh(attn_applied[0]) + self.ws(hidden[0]) + self.wx(embedded[0]))[0,0]
+        p_gen = torch.sigmoid(self.wh(attn_applied[0]) + self.ws(hidden[0]) + self.wx(embedded[0]))[0,0]
 
-        # atten_p = torch.mm(attn_weights, pg_mat*(1-p_gen))
+        atten_p = torch.mm(attn_weights, pg_mat*(1-p_gen))
 
         output = torch.cat((hidden[0], attn_applied[0]), 1)
         output = self.attn_combine(output).unsqueeze(0)
@@ -64,8 +64,8 @@ class AttnDecoderRNN(nn.Module):
         
 
         output = F.softmax(self.out(output[0]), dim=1)
-        # output = output * p_gen
-        # output = torch.cat((output, atten_p),1)
+        output = output * p_gen
+        output = torch.cat((output, atten_p),1)
         output = torch.log(output)
 
         return output, hidden, attn_weights
