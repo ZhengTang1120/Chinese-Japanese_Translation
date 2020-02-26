@@ -2,19 +2,23 @@ import pkuseg
 seg = pkuseg.pkuseg()
 import MeCab
 mecab = MeCab.Tagger ("-Owakati")
+import json
+
+k2c = json.load(open("k2c.json"))
 
 class Lang:
     def __init__(self, name):
         self.name = name
         self.word2index = {}
         self.word2count = {}
-        self.index2word = {0: "SOS", 1: "EOS"}
-        self.n_words = 2  # Count SOS, EOS
+        self.index2word = {0: "SOS", 1: "EOS", 2: "UNK"}
+        self.n_words = 3  # Count SOS, EOS and UNK
 
     def addSentence(self, sentence):
         if self.name == "japanese":
             for word in mecab.parse(sentence).split():
-                self.addWord(word)
+                if word not in k2c:
+                    self.addWord(word)
             return mecab.parse(sentence).split()
         elif self.name == "chinese":
             for word in seg.cut(sentence):

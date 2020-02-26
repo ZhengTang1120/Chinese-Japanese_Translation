@@ -31,9 +31,17 @@ def makeOutputIndexes(lang, output, input):
             sourceset[word] = lang.n_words + len(sourceset)
             id2source[sourceset[word]] = word
         pg_mat[sourceset[word]-lang.n_words][i] = 1
-    indexes = [sourceset[word] if word in sourceset else lang.word2index[word] for word in output]
+    indexes = list()
 
-    # indexes = [lang.word2index[word] if word in lang.word2index else 0 for word in output]
+    for word in output:
+        if word in sourceset:
+            indexes.append(sourceset[word])
+        elif word in lang.word2index:
+            indexes.append(lang.word2index[word])
+        elif word in k2c and k2c[word] in sourceset:
+            indexes.append(sourceset[k2c[word]])
+        else:
+            indexes.append(2)
 
     indexes.append(1)
     return indexes, pg_mat, id2source
@@ -73,10 +81,18 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
                 # decoded_words.append('<EOS>')
                 break
             else:
-                if topi.item() in output_lang.index2word:
+                if topi.item() in output_lang.index2word and topi.item() > 2:
                     decoded_words.append(output_lang.index2word[topi.item()])
+                elif topi.item() in id2source:
+                    sourceword = id2source[topi.item()]
+                    if sourceword in c2k:
+                        decoded_words.append(c2k[sourceword])
+                    else:
+                        decoded_words.append(sourceword)
                 else:
-                    decoded_words.append(id2source[topi.item()])   
+                    topv, topi = decoder_output.data[3:output_lang.n_words].topk(1)
+                    decoded_words.append(output_lang.index2word[topi.item()])
+
 
             decoder_input = topi.squeeze().detach()
 
@@ -111,9 +127,8 @@ if __name__ == '__main__':
         jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent)
         jap_tensor              = tensorFromIndexes(jids)
         training_set.append((chi_tensor, jap_tensor, torch.tensor(pg_mat, dtype=torch.float, device=device), id2source))
-
     learning_rate = 0.001
-    hidden_size = 512
+    hidden_size = 256
 
     encoder    = EncoderRNN(chi_lang.n_words, hidden_size).to(device)
     decoder    = AttnDecoderRNN(hidden_size, jap_lang.n_words, 100, dropout_p=0.1).to(device)
@@ -130,6 +145,7 @@ if __name__ == '__main__':
     print(test_sent[0])
     print(test_sent[1])
     print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
+    exit()
     for epoch in range(20):
 
         random.shuffle(training_set)
@@ -172,6 +188,7 @@ if __name__ == '__main__':
                     loss += criterion(decoder_output, target_tensor[di])
                     if decoder_input.item() == 1:
                         break
+
 
             loss.backward()
 
