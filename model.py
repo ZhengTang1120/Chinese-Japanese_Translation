@@ -13,17 +13,10 @@ class EncoderRNN(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.rnn = nn.LSTM(hidden_size, hidden_size, bidirectional=True)
 
-    def forward(self, input):
-        print ("encoder_input", input)
-        embedded = self.embedding(input).view(-1, 1, self.hidden_size)
-        print ("encoder_embed", embedded)
+    def forward(self, input, batch_size):
+        embedded = self.embedding(input).view(-1, batch_size, self.hidden_size)
         output, hidden = self.rnn(embedded)
-        print ("encoder_output", output)
-        print ("encoder_hidden", hidden)
         return output, hidden
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
@@ -36,31 +29,37 @@ class AttnDecoderRNN(nn.Module):
         self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size * 2, bias=False)
         self.attn_combine = nn.Linear(self.hidden_size * 4, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.rnn = nn.LSTM(self.hidden_size, self.hidden_size, bidirectional=True)
+        self.rnn = nn.LSTM(self.hidden_size, self.hidden_size * 2)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
         self.wh = nn.Linear(self.hidden_size * 2, 1, bias=False)
         self.ws = nn.Linear(self.hidden_size * 2, 1, bias=False)
         self.wx = nn.Linear(self.hidden_size, 1)
 
-    def forward(self, input, hidden, encoder_outputs, pg_mat):
-        embedded = self.embedding(input).view(1, 1, -1)
+    def forward(self, input, hidden, encoder_outputs, pg_mat, batch_size):
+        embedded = self.embedding(input).view(1, batch_size, -1)
         embedded = self.dropout(embedded)
         output, hidden = self.rnn(embedded, hidden)
         attn_weights = F.softmax(
-            torch.mm(
-                self.attn(hidden[0].view( 1,-1)), torch.t(encoder_outputs)
+            torch.bmm(
+                self.attn(hidden[0].view(batch_size, 1, -1)), encoder_outputs.permute(1,2,0)
                 )
             , dim=1)
-        attn_applied = torch.bmm(attn_weights.unsqueeze(0),
-                                 encoder_outputs.unsqueeze(0))
-        p_gen = torch.sigmoid(self.wh(attn_applied[0]) + self.ws(hidden[0].view( 1,-1)) + self.wx(embedded[0]))[0,0]
-        atten_p = torch.mm(attn_weights, pg_mat*(1-p_gen))
-        output = torch.cat((hidden[0].view( 1,-1), attn_applied[0]), 1)
-        output = self.attn_combine(output).unsqueeze(0)
+        attn_applied = torch.bmm(attn_weights,
+                                 encoder_outputs.permute(1,0,2)).view(batch_size, -1)
+        output = torch.cat((hidden[0].view( batch_size,-1), attn_applied), 1)
+        output = self.attn_combine(output)
+        output = F.softmax(self.out(output), dim=1)
+
+        p_gen = torch.sigmoid(self.wh(attn_applied) + self.ws(hidden[0].view( batch_size,-1)) + self.wx(embedded[0]))
         
-        output = F.softmax(self.out(output[0]), dim=1)
+        tensor = torch.tensor((), dtype=torch.int64, device=device)
+        ones = tensor.new_ones((batch_size, 1))
+        input_len = pg_mat.size(1)
+        pg_mat = (pg_mat.view(batch_size, -1)*(ones-p_gen)).view(batch_size, input_len, -1)
+        atten_p = torch.bmm(attn_weights, pg_mat).view(batch_size, -1)
         output = output * p_gen
+
         output = torch.cat((output, atten_p),1)
         output = torch.log(output)
 

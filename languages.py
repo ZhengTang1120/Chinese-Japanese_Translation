@@ -3,8 +3,12 @@ seg = pkuseg.pkuseg()
 import MeCab
 mecab = MeCab.Tagger ("-Owakati")
 import json
+from collections import defaultdict
 
 k2c = json.load(open("k2c.json"))
+c2k = json.load(open("c2k.json"))
+MAX_LENGTH = 200
+BATCH_SIZE = 1
 
 class Lang:
     def __init__(self, name):
@@ -37,3 +41,28 @@ class Lang:
             self.n_words += 1
         else:
             self.word2count[word] += 1
+
+
+def sort_and_batch(pairs, batch_size):
+    pairs = sorted(pairs, key = lambda x: (len(x[0]), len(x[1])), reverse=True)
+    batch = list()
+    for pair in pairs:
+        # if len(batch) == 0:
+        #     batch.append([len(pair[0]), len(pair[1])])
+        if len(batch) >= batch_size:#+1:
+            yield batch
+            batch = list()
+        else:
+            # batch[0][1] = max(len(pair[1]), batch[0][1])
+            batch.append(pair)
+
+
+def batch_via_length(pairs):
+    batches = defaultdict(dict)
+    for pair in pairs:
+        if len(pair[0])<=MAX_LENGTH and len(pair[1])<=MAX_LENGTH:
+            if len(pair[1]) in batches[len(pair[0])]:
+                batches[len(pair[0])][len(pair[1])].append(pair)
+            else:
+                batches[len(pair[0])][len(pair[1])] = [pair]
+    return batches
