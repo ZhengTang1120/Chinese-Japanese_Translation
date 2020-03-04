@@ -14,12 +14,8 @@ class EncoderRNN(nn.Module):
         self.rnn = nn.LSTM(hidden_size, hidden_size, bidirectional=True)
 
     def forward(self, input):
-        print ("encoder_input", input)
         embedded = self.embedding(input).view(-1, 1, self.hidden_size)
-        print ("encoder_embed", embedded)
         output, hidden = self.rnn(embedded)
-        print ("encoder_output", output)
-        print ("encoder_hidden", hidden)
         return output, hidden
 
     def initHidden(self):
@@ -36,7 +32,7 @@ class AttnDecoderRNN(nn.Module):
         self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size * 2, bias=False)
         self.attn_combine = nn.Linear(self.hidden_size * 4, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.rnn = nn.LSTM(self.hidden_size, self.hidden_size, bidirectional=True)
+        self.rnn = nn.LSTM(self.hidden_size, self.hidden_size * 2)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
         self.wh = nn.Linear(self.hidden_size * 2, 1, bias=False)

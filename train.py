@@ -69,7 +69,7 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
 
         decoder_input = torch.tensor([[0]], device=device)  # SOS
 
-        decoder_hidden = encoder_hidden
+        decoder_hidden = (encoder_hidden[0].view(1, 1,-1), encoder_hidden[1].view(1, 1,-1))
 
         decoded_words = []
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     print(test_sent[0])
     print(test_sent[1])
     print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
-    exit()
+
     for epoch in range(20):
 
         random.shuffle(training_set)
@@ -164,7 +164,7 @@ if __name__ == '__main__':
             encoder_outputs  = encoder_output.view(input_length, -1)
 
             decoder_input = torch.tensor([[0]], device=device)
-            decoder_hidden = encoder_hidden
+            decoder_hidden = (encoder_hidden[0].view(1, 1,-1), encoder_hidden[1].view(1, 1,-1))
 
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
@@ -173,7 +173,8 @@ if __name__ == '__main__':
                 for di in range(target_length):
                     decoder_output, decoder_hidden, decoder_attention = decoder(
                         decoder_input, decoder_hidden, encoder_outputs, pg_mat)
-                    # print ()
+                    print (decoder_output.size())
+                    print (target_tensor[di].size())
                     loss += criterion(decoder_output, target_tensor[di])
                     decoder_input = target_tensor[di]  # Teacher forcing
 
