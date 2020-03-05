@@ -5,6 +5,7 @@ mecab = MeCab.Tagger ("-Owakati")
 import json
 
 k2c = json.load(open("k2c.json"))
+c2k = json.load(open("c2k.json"))
 
 class Lang:
     def __init__(self, name):

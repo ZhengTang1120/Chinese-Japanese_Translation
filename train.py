@@ -1,7 +1,20 @@
 from model import *
 from languages import *
 import random
+import os
+import time
+import math
 import numpy as np
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+def timeSince(since):
+    now = time.time()
+    s = now - since
+    return '%s' % (asMinutes(s))
 
 def split_sentence(sentence, name):
     if name == "japanese":
@@ -142,15 +155,15 @@ if __name__ == '__main__':
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
     test_sent = pairs[71]
-    print(test_sent[0])
-    print(test_sent[1])
-    print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
+    # print(test_sent[0])
+    # print(test_sent[1])
+    # print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
 
     for epoch in range(20):
 
         random.shuffle(training_set)
         total_loss = 0
-
+        start = time.time()
         for input_tensor, target_tensor, pg_mat, id2source in training_set:
             loss = 0
 
@@ -173,8 +186,6 @@ if __name__ == '__main__':
                 for di in range(target_length):
                     decoder_output, decoder_hidden, decoder_attention = decoder(
                         decoder_input, decoder_hidden, encoder_outputs, pg_mat)
-                    print (decoder_output.size())
-                    print (target_tensor[di].size())
                     loss += criterion(decoder_output, target_tensor[di])
                     decoder_input = target_tensor[di]  # Teacher forcing
 
@@ -202,6 +213,7 @@ if __name__ == '__main__':
 
             total_loss += loss.item() / target_length
 
+        print (timeSince(start))
         print (total_loss)
         print(evaluate(encoder, decoder, test_sent[0], chi_lang, jap_lang, max_length=100))
         print(test_sent[1])
