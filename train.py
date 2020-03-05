@@ -142,36 +142,55 @@ if __name__ == '__main__':
     #     for i in range(len(c)):
     #         test_sents.append((chi_lang_test.addSentence(c[i]), jap_lang_test.addSentence(j[i])))
 
-    batches = list(sort_and_batch(pairs, BATCH_SIZE))
-    # for l1 in batches:
-    #     for l2 in batches[l1]:
-    #         print (l1, l2, len(batches[l1][l2]))
-    # exit()
+    # batches = list(sort_and_batch(pairs, BATCH_SIZE))
+    # training_set = list()
+
+    # for batch in batches:
+    #     chi_tensors = list()
+    #     jap_tensors = list()
+    #     pad_i_len = len(batch[0][0])
+    #     pad_o_len = len(batch[0][1])
+    #     pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
+    #     for i, pair in enumerate(batch):
+    #         chi_sent = pair[0]
+    #         jap_sent = pair[1]
+    #         chi_tensor = tensorFromSentence(chi_lang, chi_sent)
+    #         jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, pad_i_len)
+    #         jap_tensor              = tensorFromIndexes(jids)
+    #         chi_tensors.append(chi_tensor)
+    #         jap_tensors.append(jap_tensor)
+    #         pg_mats[i] = pg_mat
+    #     # chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
+    #     # jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
+    #     chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
+    #     jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
+    #     training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
+
+    batches = batch_via_length(pairs)
+    
     training_set = list()
 
-    for batch in batches:
-        chi_tensors = list()
-        jap_tensors = list()
-        pad_i_len = len(batch[0][0])
-        pad_o_len = len(batch[0][1])
-        pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
-        for i, pair in enumerate(batch):
-            chi_sent = pair[0]
-            jap_sent = pair[1]
-            chi_tensor = tensorFromSentence(chi_lang, chi_sent)
-            jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, pad_i_len)
-            jap_tensor              = tensorFromIndexes(jids)
-            chi_tensors.append(chi_tensor)
-            jap_tensors.append(jap_tensor)
-            pg_mats[i] = pg_mat
-        # chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
-        # jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
-        chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
-        jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
-        training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
+    for l1 in batches:
+        for l2 in batches[l1]:
+            batch = batches[l1][l2]
+            chi_tensors = list()
+            jap_tensors = list()
+            for i, pair in enumerate(batch):
+                chi_sent = pair[0]
+                jap_sent = pair[1]
+                pg_mats   = np.ones((len(batch), l1 + 1, l1 + 1)) * 1e-10
+                chi_tensor = tensorFromSentence(chi_lang, chi_sent)
+                jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, l1)
+                jap_tensor              = tensorFromIndexes(jids)
+                chi_tensors.append(chi_tensor)
+                jap_tensors.append(jap_tensor)
+                pg_mats[i] = pg_mat
+            chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
+            jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
+            training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
             
     
-    learning_rate = 0.0001
+    learning_rate = 0.001
     hidden_size = 256
 
     encoder    = EncoderRNN(chi_lang.n_words, hidden_size).to(device)
