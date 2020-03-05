@@ -115,7 +115,7 @@ def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX
 
                 decoder_input = topi.squeeze().detach()
 
-            yield (decoded_words)
+            yield (''.join(decoded_words))
 
 
 if __name__ == '__main__':
@@ -135,61 +135,51 @@ if __name__ == '__main__':
                 break
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
-    # test_sents = list()
-    # with open("dev_dataset/segments.zh") as fc, open("dev_dataset/segments.ja") as fj:
-    #     c = fc.readlines()
-    #     j = fj.readlines()
-    #     for i in range(len(c)):
-    #         test_sents.append((chi_lang_test.addSentence(c[i]), jap_lang_test.addSentence(j[i])))
+    test_sents = list()
+    with open("dev_dataset/segments.zh") as fc, open("dev_dataset/segments.ja") as fj:
+        c = fc.readlines()
+        j = fj.readlines()
+        for i in range(len(c)):
+            test_sents.append((chi_lang_test.addSentence(c[i]), jap_lang_test.addSentence(j[i])))
 
     # batches = list(sort_and_batch(pairs, BATCH_SIZE))
-    # training_set = list()
 
-    # for batch in batches:
-    #     chi_tensors = list()
-    #     jap_tensors = list()
-    #     pad_i_len = len(batch[0][0])
-    #     pad_o_len = len(batch[0][1])
-    #     pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
-    #     for i, pair in enumerate(batch):
-    #         chi_sent = pair[0]
-    #         jap_sent = pair[1]
-    #         chi_tensor = tensorFromSentence(chi_lang, chi_sent)
-    #         jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, pad_i_len)
-    #         jap_tensor              = tensorFromIndexes(jids)
-    #         chi_tensors.append(chi_tensor)
-    #         jap_tensors.append(jap_tensor)
-    #         pg_mats[i] = pg_mat
-    #     # chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
-    #     # jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
-    #     chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
-    #     jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
-    #     training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
+    groups = group_via_length(pairs)
 
-    batches = batch_via_length(pairs)
-    
-    training_set = list()
+    batches = list()
+    for l1 in groups:
+        for l2 in groups[l1]:
+            batch = list()
+            for pair in groups[l1][l2]:
+                if len(batch) < BATCH_SIZE:
+                    batch.append(pair)
+                else:
+                    batches.append(batch)
+                    batch = list()
+            batches.append(batch)
 
-    for l1 in batches:
-        for l2 in batches[l1]:
-            batch = batches[l1][l2]
-            chi_tensors = list()
-            jap_tensors = list()
-            for i, pair in enumerate(batch):
-                chi_sent = pair[0]
-                jap_sent = pair[1]
-                pg_mats   = np.ones((len(batch), l1 + 1, l1 + 1)) * 1e-10
-                chi_tensor = tensorFromSentence(chi_lang, chi_sent)
-                jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, l1)
-                jap_tensor              = tensorFromIndexes(jids)
-                chi_tensors.append(chi_tensor)
-                jap_tensors.append(jap_tensor)
-                pg_mats[i] = pg_mat
-            chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
-            jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
-            training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
-            
-    
+    training_set = list()                 
+    for batch in batches:
+        chi_tensors = list()
+        jap_tensors = list()
+        pad_i_len = len(batch[0][0])
+        pad_o_len = len(batch[0][1])
+        pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
+        for i, pair in enumerate(batch):
+            chi_sent = pair[0]
+            jap_sent = pair[1]
+            chi_tensor = tensorFromSentence(chi_lang, chi_sent)
+            jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, pad_i_len)
+            jap_tensor              = tensorFromIndexes(jids)
+            chi_tensors.append(chi_tensor)
+            jap_tensors.append(jap_tensor)
+            pg_mats[i] = pg_mat
+        chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
+        jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
+        # chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
+        # jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
+        training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
+
     learning_rate = 0.001
     hidden_size = 256
 
@@ -200,13 +190,14 @@ if __name__ == '__main__':
     decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)
     criterion = nn.NLLLoss(ignore_index=3)
 
-    teacher_forcing_ratio = 0.5
+    teacher_forcing_ratio = 1
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
     for epoch in range(20):
 
         random.shuffle(training_set)
+        
         total_loss = 0
         start = time.time()
         for input_tensor, target_tensor, pg_mat in training_set:
@@ -260,19 +251,14 @@ if __name__ == '__main__':
             decoder_optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.item() / target_length
+
         print (timeSince(start))
         print (total_loss)
-        preds = predict(encoder, decoder, [pairs[71]], chi_lang, jap_lang, max_length=100)
-        print (list(preds))
-        # os.mkdir("model/%d"%epoch)
-        # PATH = "model/%d"%epoch
-        # torch.save(encoder, PATH+"/encoder")
-        # torch.save(decoder, PATH+"/decoder")
-        # with open("model/%d"%epoch+"/preds.txt", "w") as f:
-        #     for pred in preds:
-        #         f.write(pred+'\n')
-
-
-
-
-
+        preds = predict(encoder, decoder, test_sents[:10], chi_lang, jap_lang, max_length=100)
+        os.mkdir("model/%d"%epoch)
+        PATH = "model/%d"%epoch
+        torch.save(encoder, PATH+"/encoder")
+        torch.save(decoder, PATH+"/decoder")
+        with open("model/%d"%epoch+"/preds.txt", "w") as f:
+            for pred in preds:
+                f.write(pred+'\n')

@@ -8,15 +8,15 @@ from collections import defaultdict
 k2c = json.load(open("k2c.json"))
 c2k = json.load(open("c2k.json"))
 MAX_LENGTH = 200
-BATCH_SIZE = 200
+BATCH_SIZE = 256
 
 class Lang:
     def __init__(self, name):
         self.name = name
         self.word2index = {}
         self.word2count = {}
-        self.index2word = {0: "SOS", 1: "EOS", 2: "UNK", 3: "PAD"}
-        self.n_words = 4  # Count SOS, EOS and UNK
+        self.index2word = {0: "SOS", 1: "EOS", 2: "UNK"}
+        self.n_words = 3  # Count SOS, EOS and UNK
 
     def addSentence(self, sentence):
         if self.name == "japanese":
@@ -57,12 +57,12 @@ def sort_and_batch(pairs, batch_size):
             batch.append(pair)
 
 
-def batch_via_length(pairs):
-    batches = defaultdict(dict)
+def group_via_length(pairs):
+    groups = defaultdict(dict)
     for pair in pairs:
         if len(pair[0])<=MAX_LENGTH and len(pair[1])<=MAX_LENGTH:
-            if len(pair[1]) in batches[len(pair[0])]:
-                batches[len(pair[0])][len(pair[1])].append(pair)
+            if len(pair[1]) in groups[len(pair[0])]:
+                groups[len(pair[0])][len(pair[1])].append(pair)
             else:
-                batches[len(pair[0])][len(pair[1])] = [pair]
-    return batches
+                groups[len(pair[0])][len(pair[1])] = [pair]
+    return groups
