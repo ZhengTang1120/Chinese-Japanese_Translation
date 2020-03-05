@@ -5,8 +5,8 @@ mecab = MeCab.Tagger ("-Owakati")
 import json
 from collections import defaultdict
 
-k2c = json.load(open("k2c.json"))
-c2k = json.load(open("c2k.json"))
+k2c = json.load(open("k2c.json", encoding='utf-8'))
+c2k = json.load(open("c2k.json", encoding='utf-8'))
 MAX_LENGTH = 200
 BATCH_SIZE = 256
 

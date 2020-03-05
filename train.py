@@ -134,7 +134,7 @@ if __name__ == '__main__':
     jap_lang_test = Lang("japanese")
 
     pairs = list()
-    with open(args.corpra_dir+"/existing_parallel/segments.zh") as fc, open(args.corpra_dir+"/existing_parallel/segments.ja") as fj:
+    with open(args.corpra_dir+"/existing_parallel/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/existing_parallel/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
@@ -143,7 +143,7 @@ if __name__ == '__main__':
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
-    with open(args.corpra_dir+"/dev_dataset/segments.zh") as fc, open(args.corpra_dir+"/dev_dataset/segments.ja") as fj:
+    with open(args.corpra_dir+"/dev_dataset/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
