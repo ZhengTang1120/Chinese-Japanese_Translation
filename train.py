@@ -3,7 +3,19 @@ from languages import *
 import random
 import numpy as np
 import os
+import time
+import math
 from torch.nn.utils.rnn import pad_sequence
+
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' % (m, s)
+
+def timeSince(since):
+    now = time.time()
+    s = now - since
+    return '%s' % (asMinutes(s))
 
 def split_sentence(sentence, name):
     if name == "japanese":
@@ -61,6 +73,7 @@ def get_pgmat(lang, input):
 
 def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
     for sentence in sentences:
+        print (sentence[1])
         sentence = sentence[0]
         with torch.no_grad():
             input_tensor = tensorFromSentence(input_lang, sentence).view(-1, 1, 1)
@@ -102,7 +115,7 @@ def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX
 
                 decoder_input = topi.squeeze().detach()
 
-            yield (''.join(decoded_words))
+            yield (decoded_words)
 
 
 if __name__ == '__main__':
@@ -139,24 +152,26 @@ if __name__ == '__main__':
     for batch in batches:
         chi_tensors = list()
         jap_tensors = list()
-        # pad_i_len = batch[0][0]
-        # pad_o_len = batch[0][1]
-        pg_mats   = np.ones((len(batch), len(batch[0][0]) + 1, len(batch[0][0]) + 1)) * 1e-10
+        pad_i_len = len(batch[0][0])
+        pad_o_len = len(batch[0][1])
+        pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
         for i, pair in enumerate(batch):
             chi_sent = pair[0]
             jap_sent = pair[1]
             chi_tensor = tensorFromSentence(chi_lang, chi_sent)
-            jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, len(chi_sent))
+            jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent, pad_i_len)
             jap_tensor              = tensorFromIndexes(jids)
             chi_tensors.append(chi_tensor)
             jap_tensors.append(jap_tensor)
             pg_mats[i] = pg_mat
-        chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
-        jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
+        # chi_tensors = torch.cat(chi_tensors,1).view(-1, len(batch), 1)
+        # jap_tensors = torch.cat(jap_tensors,1).view(-1, len(batch), 1)
+        chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
+        jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
         training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
             
     
-    learning_rate = 0.001
+    learning_rate = 0.0001
     hidden_size = 256
 
     encoder    = EncoderRNN(chi_lang.n_words, hidden_size).to(device)
@@ -164,7 +179,7 @@ if __name__ == '__main__':
 
     encoder_optimizer    = optim.Adam(encoder.parameters(), lr=learning_rate)
     decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)
-    criterion = nn.NLLLoss()
+    criterion = nn.NLLLoss(ignore_index=3)
 
     teacher_forcing_ratio = 0.5
 
@@ -172,9 +187,9 @@ if __name__ == '__main__':
     decoder_optimizer.zero_grad()
     for epoch in range(20):
 
-        # random.shuffle(training_set)
+        random.shuffle(training_set)
         total_loss = 0
-
+        start = time.time()
         for input_tensor, target_tensor, pg_mat in training_set:
             loss = 0
 
@@ -198,8 +213,8 @@ if __name__ == '__main__':
                 for di in range(target_length):
                     decoder_output, decoder_hidden, decoder_attention = decoder(
                         decoder_input, decoder_hidden, encoder_outputs, pg_mat, batch_size)
-                    print (decoder_output.size())
-                    print (target_tensor[di].view(-1).size())
+                    # print (decoder_output.size())
+                    # print (target_tensor[di].view(-1).size())
                     loss += criterion(decoder_output, target_tensor[di].view(-1))
                     decoder_input = target_tensor[di]  # Teacher forcing
 
@@ -212,6 +227,8 @@ if __name__ == '__main__':
                     topv, topi = decoder_output.topk(1)
                     decoder_input = topi.squeeze().detach()  # detach from history as input
                     loss += criterion(decoder_output, target_tensor[di].view(-1))
+                    # if decoder_input.item() == 1:
+                    #     break
 
 
             loss.backward()
@@ -222,10 +239,11 @@ if __name__ == '__main__':
 
             encoder_optimizer.step()
             decoder_optimizer.step()
-            print(input_length, loss.item())
+            # print(input_length, loss.item())
             total_loss += loss.item() / target_length
-
-        preds = predict(encoder, decoder, pairs, chi_lang, jap_lang, max_length=100)
+        print (timeSince(start))
+        print (total_loss)
+        preds = predict(encoder, decoder, [pairs[71]], chi_lang, jap_lang, max_length=100)
         print (list(preds))
         # os.mkdir("model/%d"%epoch)
         # PATH = "model/%d"%epoch

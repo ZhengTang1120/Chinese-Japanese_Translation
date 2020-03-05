@@ -44,7 +44,7 @@ class AttnDecoderRNN(nn.Module):
             torch.bmm(
                 self.attn(hidden[0].view(batch_size, 1, -1)), encoder_outputs.permute(1,2,0)
                 )
-            , dim=1)
+            , dim=2)
         attn_applied = torch.bmm(attn_weights,
                                  encoder_outputs.permute(1,0,2)).view(batch_size, -1)
         output = torch.cat((hidden[0].view( batch_size,-1), attn_applied), 1)
