@@ -5,6 +5,7 @@ import numpy as np
 import os
 import time
 import math
+import argparse
 from torch.nn.utils.rnn import pad_sequence
 
 def asMinutes(s):
@@ -120,6 +121,12 @@ def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument('corpra_dir')
+    args = parser.parse_args()
+
+
+
     chi_lang = Lang("chinese")
     jap_lang = Lang("japanese")
 
@@ -127,7 +134,7 @@ if __name__ == '__main__':
     jap_lang_test = Lang("japanese")
 
     pairs = list()
-    with open("existing_parallel/segments.zh") as fc, open("existing_parallel/segments.ja") as fj:
+    with open(args.corpra_dir+"/existing_parallel/segments.zh") as fc, open(args.corpra_dir+"/existing_parallel/segments.ja") as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
@@ -136,7 +143,7 @@ if __name__ == '__main__':
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
-    with open("dev_dataset/segments.zh") as fc, open("dev_dataset/segments.ja") as fj:
+    with open(args.corpra_dir+"/dev_dataset/segments.zh") as fc, open(args.corpra_dir+"/dev_dataset/segments.ja") as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
