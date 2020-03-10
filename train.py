@@ -138,6 +138,8 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
+            if i>100000:
+                break
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
@@ -161,8 +163,9 @@ if __name__ == '__main__':
                 else:
                     batches.append(batch)
                     batch = list()
-            batches.append(batch)
-
+            if len(batch)!=0:
+                batches.append(batch)
+    print (len(batches))
     training_set = list()                 
     for batch in batches:
         chi_tensors = list()
@@ -184,7 +187,7 @@ if __name__ == '__main__':
         # chi_tensors = pad_sequence(chi_tensors, padding_value = 3)
         # jap_tensors = pad_sequence(jap_tensors, padding_value = 3)
         training_set.append((chi_tensors, jap_tensors, torch.tensor(pg_mats, dtype=torch.float, device=device)))
-
+    print (len(training_set))
     learning_rate = 0.001
     hidden_size = 256
 
