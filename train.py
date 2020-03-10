@@ -120,7 +120,7 @@ if __name__ == '__main__':
         j = fj.readlines()
         n = 0
         for i in range(len(c)):
-            if n<10:
+            if n<1000:
                 n+=1
                 pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
 
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
-    test_sent = pairs[1]
+    test_sent = pairs[71]
     # print(test_sent[0])
     # print(test_sent[1])
     # print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
