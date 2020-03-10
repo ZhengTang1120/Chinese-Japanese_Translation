@@ -1,11 +1,11 @@
-import pkuseg
-seg = pkuseg.pkuseg()
+import jieba
 import MeCab
 mecab = MeCab.Tagger ("-Owakati")
 import json
+from collections import defaultdict
 
-k2c = json.load(open("k2c.json"))
-c2k = json.load(open("c2k.json"))
+k2c = json.load(open("k2c.json", encoding='utf-8'))
+c2k = json.load(open("c2k.json", encoding='utf-8'))
 
 class Lang:
     def __init__(self, name):
@@ -22,9 +22,9 @@ class Lang:
                     self.addWord(word)
             return mecab.parse(sentence).split()
         elif self.name == "chinese":
-            for word in seg.cut(sentence):
+            for word in jieba.cut(sentence):
                 self.addWord(word)
-            return seg.cut(sentence)
+            return list(jieba.cut(sentence))
         else:
             for word in sentence.split():
                 self.addWord(word)
