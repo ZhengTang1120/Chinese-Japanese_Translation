@@ -77,18 +77,14 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
         pg_mat, id2source = get_pgmat(output_lang, sentence)
         pg_mat = torch.tensor(pg_mat, dtype=torch.float, device=device)
 
-        encoder_output, encoder_hidden = encoder(input_tensor)
-        encoder_outputs  = encoder_output.view(input_length, -1)
+        encoder_outputs = encoder(input_tensor)
 
         decoder_input = torch.tensor([[0]], device=device)  # SOS
-
-        decoder_hidden = (encoder_hidden[0].view(1, 1,-1), encoder_hidden[1].view(1, 1,-1))
 
         decoded_words = []
 
         for di in range(max_length):
-            decoder_output, decoder_hidden, decoder_attention = decoder(
-                decoder_input, decoder_hidden, encoder_outputs, pg_mat)
+            decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == 1:
                 # decoded_words.append('<EOS>')
@@ -103,11 +99,11 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
                     else:
                         decoded_words.append(sourceword)
                 else:
-                    topv, topi = decoder_output.data[3:output_lang.n_words].topk(1)
+                    topv, topi = decoder_output.data[:,3:output_lang.n_words].topk(1)
                     decoded_words.append(output_lang.index2word[topi.item()])
 
 
-            decoder_input = topi.squeeze().detach()
+            decoder_input = torch.cat((decoder_input, topi.squeeze().detach().view(1, 1)),0)
 
         return decoded_words
 
@@ -124,7 +120,7 @@ if __name__ == '__main__':
         j = fj.readlines()
         n = 0
         for i in range(len(c)):
-            if n<1000:
+            if n<10:
                 n+=1
                 pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
 
@@ -154,7 +150,7 @@ if __name__ == '__main__':
 
     encoder_optimizer.zero_grad()
     decoder_optimizer.zero_grad()
-    test_sent = pairs[71]
+    test_sent = pairs[1]
     # print(test_sent[0])
     # print(test_sent[1])
     # print (makeOutputIndexes(jap_lang, test_sent[1], test_sent[0])[0])
@@ -193,7 +189,7 @@ if __name__ == '__main__':
                     topv, topi = decoder_output.topk(1)
                     decoder_input = torch.cat((decoder_input, topi.squeeze().detach().view(1, 1)),0)
                     loss += criterion(decoder_output, target_tensor[di])
-                    if topi.squeeze().detach().item() == 1:
+                    if topi.squeeze().item() == 1:
                         break
 
 
