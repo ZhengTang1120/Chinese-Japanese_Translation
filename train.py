@@ -143,8 +143,8 @@ if __name__ == '__main__':
     learning_rate = 0.001
     hidden_size = 256
 
-    encoder    = EncoderRNN(chi_lang.n_words, hidden_size).to(device)
-    decoder    = AttnDecoderRNN(hidden_size, jap_lang.n_words, 100, dropout_p=0.1).to(device)
+    encoder    = Encoder(chi_lang.n_words, hidden_size, 8).to(device)
+    decoder    = Decoder(hidden_size, 8, jap_lang.n_words, 100).to(device)
 
     encoder_optimizer    = optim.Adam(encoder.parameters(), lr=learning_rate)
     decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)
@@ -173,40 +173,35 @@ if __name__ == '__main__':
             input_length = input_tensor.size(0)
             target_length = target_tensor.size(0)
 
-            encoder_output, encoder_hidden = encoder(input_tensor)
-            encoder_outputs  = encoder_output.view(input_length, -1)
+            encoder_outputs = encoder(input_tensor)
 
             decoder_input = torch.tensor([[0]], device=device)
-            decoder_hidden = (encoder_hidden[0].view(1, 1,-1), encoder_hidden[1].view(1, 1,-1))
 
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
             if use_teacher_forcing:
                 # Teacher forcing: Feed the target as the next input
                 for di in range(target_length):
-                    decoder_output, decoder_hidden, decoder_attention = decoder(
-                        decoder_input, decoder_hidden, encoder_outputs, pg_mat)
+                    decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
                     loss += criterion(decoder_output, target_tensor[di])
-                    decoder_input = target_tensor[di]  # Teacher forcing
+                    decoder_input = torch.cat((decoder_input, target_tensor[di].unsqueeze(0)),0)
 
             else:
                 # Without teacher forcing: use its own predictions as the next input
                 for di in range(target_length):
-                    decoder_output, decoder_hidden, decoder_attention = decoder(
-                        decoder_input, decoder_hidden, encoder_outputs, pg_mat)
+                    decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
                     topv, topi = decoder_output.topk(1)
-                    decoder_input = topi.squeeze().detach()  # detach from history as input
-
+                    decoder_input = torch.cat((decoder_input, topi.squeeze().detach().view(1, 1)),0)
                     loss += criterion(decoder_output, target_tensor[di])
-                    if decoder_input.item() == 1:
+                    if topi.squeeze().detach().item() == 1:
                         break
 
 
             loss.backward()
 
-            clipping_value = 1#arbitrary number of your choosing
-            torch.nn.utils.clip_grad_norm_(encoder.parameters(), clipping_value)
-            torch.nn.utils.clip_grad_norm_(decoder.parameters(), clipping_value)
+            # clipping_value = 1#arbitrary number of your choosing
+            # torch.nn.utils.clip_grad_norm_(encoder.parameters(), clipping_value)
+            # torch.nn.utils.clip_grad_norm_(decoder.parameters(), clipping_value)
 
             encoder_optimizer.step()
             decoder_optimizer.step()
