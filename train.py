@@ -215,6 +215,13 @@ if __name__ == '__main__':
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy()
             print (torch.cuda.memory_summary())
+            import gc
+            for obj in gc.get_objects():
+                try:
+                    if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                        print(type(obj), obj.size())
+                except:
+                    pass
             torch.cuda.empty_cache()
 
         print (timeSince(start))
