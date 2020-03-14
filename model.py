@@ -18,7 +18,7 @@ class Translator(nn.Module):
         outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), self.decoder.output_size).to(device)
         decoder_input = target_tensor[0,:]
         for di in range(1, target_tensor.size(0)):
-            decoder_output, hidden, decoder_attention = decoder(
+            decoder_output, hidden, decoder_attention = self.decoder(
                         decoder_input, hidden, encoder_outputs, pg_mat, batch_size)
             outputs[di] = decoder_output
             teacher_force = random.random() < teacher_forcing_ratio
