@@ -73,6 +73,7 @@ def get_pgmat(lang, input):
 def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
     translator.eval()
     for sentence in sentences:
+        sentence = sentence[0]
         with torch.no_grad():
             input_tensor = tensorFromSentence(input_lang, sentence).view(-1, 1, 1)
             input_length = input_tensor.size()[0]
