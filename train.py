@@ -1,7 +1,5 @@
 from model import *
 from languages import *
-import random
-import numpy as np
 import os
 import time
 import math
@@ -46,7 +44,7 @@ def makeOutputIndexes(lang, output, input, pad_length):
             sourceset[word] = lang.n_words + len(sourceset)
             id2source[sourceset[word]] = word
         pg_mat[sourceset[word]-lang.n_words][i] = 1
-    indexes = list()
+    indexes = [0]
 
     for word in output:
         if word in sourceset:
@@ -72,17 +70,16 @@ def get_pgmat(lang, input):
         pg_mat[sourceset[word]-lang.n_words][i] = 1
     return pg_mat, id2source
 
-def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
+def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
+    translator.eval()
     for sentence in sentences:
-        print (sentence[1])
-        sentence = sentence[0]
         with torch.no_grad():
             input_tensor = tensorFromSentence(input_lang, sentence).view(-1, 1, 1)
             input_length = input_tensor.size()[0]
             pg_mat, id2source = get_pgmat(output_lang, sentence)
             pg_mat = torch.tensor(pg_mat, dtype=torch.float, device=device).unsqueeze(0)
 
-            encoder_outputs, encoder_hidden = encoder(input_tensor, 1)
+            encoder_outputs, encoder_hidden = translator.encoder(input_tensor, 1)
 
             decoder_input = torch.tensor([[0]], device=device)  # SOS
 
@@ -91,7 +88,7 @@ def predict(encoder, decoder, sentences, input_lang, output_lang, max_length=MAX
             decoded_words = []
 
             for di in range(max_length):
-                decoder_output, decoder_hidden, decoder_attention = decoder(
+                decoder_output, decoder_hidden, decoder_attention = translator.decoder(
                     decoder_input, decoder_hidden, encoder_outputs, pg_mat, 1)
                 topv, topi = decoder_output.data.topk(1)
                 if topi.item() == 1:
@@ -138,6 +135,8 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
+            if i == 1000:
+                break
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
@@ -190,12 +189,11 @@ if __name__ == '__main__':
 
     encoder    = EncoderRNN(chi_lang.n_words, hidden_size).to(device)
     decoder    = AttnDecoderRNN(hidden_size, jap_lang.n_words, MAX_LENGTH, dropout_p=0.1).to(device)
+    translator = Translator(encoder, decoder)
 
-    encoder_optimizer    = optim.Adam(encoder.parameters(), lr=learning_rate)
-    decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(translator.parameters())
     criterion = nn.NLLLoss()
 
-    teacher_forcing_ratio = 1
     for epoch in range(20):
 
         random.shuffle(training_set)
@@ -204,55 +202,20 @@ if __name__ == '__main__':
         start = time.time()
         i = 0
         for input_tensor, target_tensor, pg_mat in training_set:
-            loss = 0
             i += 1
             
-
-            encoder_optimizer.zero_grad()
-            decoder_optimizer.zero_grad()
-
-            input_length  = input_tensor.size(0)
-            target_length = target_tensor.size(0)
-            batch_size    = input_tensor.size(1)
-            print (i, batch_size, input_length, target_length)
-            encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
-
-            decoder_input = torch.zeros(1, batch_size,dtype=torch.long, device=device)
-            decoder_hidden = (encoder_hidden[0].view(1, batch_size,-1), encoder_hidden[1].view(1, batch_size,-1))
-
-            use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
-            if use_teacher_forcing:
-                # Teacher forcing: Feed the target as the next input
-                for di in range(target_length):
-                    decoder_output, decoder_hidden, decoder_attention = decoder(
-                        decoder_input, decoder_hidden, encoder_outputs, pg_mat, batch_size)
-                    # print (decoder_output.size())
-                    # print (target_tensor[di].view(-1).size())
-                    loss += criterion(decoder_output, target_tensor[di].view(-1))
-                    decoder_input = target_tensor[di]  # Teacher forcing
-
-            else:
-                # Without teacher forcing: use its own predictions as the next input
-                for di in range(target_length):
-                    decoder_output, decoder_hidden, decoder_attention = decoder(
-                        decoder_input, decoder_hidden, encoder_outputs, pg_mat, batch_size)
-
-                    topv, topi = decoder_output.topk(1)
-                    decoder_input = topi.squeeze().detach()  # detach from history as input
-                    loss += criterion(decoder_output, target_tensor[di].view(-1))
-                    # if decoder_input.item() == 1:
-                    #     break
-
-
+            output = translator(input_tensor, target_tensor, pg_mat)
+            output_dim = output.shape[-1]
+        
+            output = output[1:].view(-1, output_dim)
+            target_tensor = target_tensor[1:].view(-1)
+            loss = criterion(output, target_tensor)
             loss.backward()
 
-            # clipping_value = 1#arbitrary number of your choosing
-            # torch.nn.utils.clip_grad_norm_(encoder.parameters(), clipping_value)
-            # torch.nn.utils.clip_grad_norm_(decoder.parameters(), clipping_value)
+            clipping_value = 1#arbitrary number of your choosing
+            torch.nn.utils.clip_grad_norm_(translator.parameters(), clipping_value)
 
-            encoder_optimizer.step()
-            decoder_optimizer.step()
+            optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy() / target_length
             print (torch.cuda.memory_summary())
