@@ -216,12 +216,12 @@ if __name__ == '__main__':
             optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy()
-            print (torch.cuda.memory_summary())
-            torch.cuda.empty_cache()
+            # print (torch.cuda.memory_summary())
+            # torch.cuda.empty_cache()
 
         print (timeSince(start))
         print (total_loss)
-        preds = predict(encoder, decoder, test_sents[:10], chi_lang, jap_lang, max_length=100)
+        preds = predict(translator, test_sents[:10], chi_lang, jap_lang, max_length=100)
         os.mkdir("model/%d"%epoch)
         PATH = "model/%d"%epoch
         torch.save(encoder, PATH+"/encoder")
