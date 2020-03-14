@@ -19,7 +19,7 @@ class Translator(nn.Module):
         decoder_input = target_tensor[0,:]
         for di in range(1, target_tensor.size(0)):
             decoder_output, hidden, decoder_attention = self.decoder(
-                        decoder_input, hidden, encoder_outputs, pg_mat, batch_size)
+                        decoder_input, hidden, encoder_outputs, pg_mat, input_tensor.size(1))
             outputs[di] = decoder_output
             teacher_force = random.random() < teacher_forcing_ratio
             top1 = output.argmax(1) 
