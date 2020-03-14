@@ -256,6 +256,7 @@ if __name__ == '__main__':
             decoder_optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy() / target_length
+            torch.cuda.memory_summary()
 
         print (timeSince(start))
         print (total_loss)
