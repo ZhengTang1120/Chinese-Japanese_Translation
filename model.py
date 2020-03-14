@@ -5,6 +5,14 @@ import torch.nn.functional as F
 import random
 import numpy as np
 
+SEED = 1234
+
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+# torch.backends.cudnn.deterministic = True
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Translator(nn.Module):
@@ -16,15 +24,15 @@ class Translator(nn.Module):
     def forward(self, input_tensor, target_tensor, pg_mat, teacher_forcing_ratio = 0.5):
         encoder_outputs, hidden = self.encoder(input_tensor, input_tensor.size(1))
         outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), 
-            self.decoder.output_size+pg_mat.size(0)).to(device)
+            self.decoder.output_size+pg_mat.size(1)).to(device)
         decoder_input = target_tensor[0,:]
         for di in range(1, target_tensor.size(0)):
             decoder_output, hidden, decoder_attention = self.decoder(
                         decoder_input, hidden, encoder_outputs, pg_mat, input_tensor.size(1))
             outputs[di] = decoder_output
             teacher_force = random.random() < teacher_forcing_ratio
-            top1 = output.argmax(1) 
-            decoder_input = trg[t] if teacher_force else top1
+            top1 = decoder_output.argmax(1) 
+            decoder_input = target_tensor[di] if teacher_force else top1
         return outputs
 
 
