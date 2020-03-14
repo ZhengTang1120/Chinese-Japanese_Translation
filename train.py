@@ -79,17 +79,15 @@ def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGT
             pg_mat, id2source = get_pgmat(output_lang, sentence)
             pg_mat = torch.tensor(pg_mat, dtype=torch.float, device=device).unsqueeze(0)
 
-            encoder_outputs, encoder_hidden = translator.encoder(input_tensor, 1)
+            encoder_outputs, hidden = translator.encoder(input_tensor, 1)
 
             decoder_input = torch.tensor([[0]], device=device)  # SOS
-
-            decoder_hidden = (encoder_hidden[0].view(1, 1,-1), encoder_hidden[1].view(1, 1,-1))
 
             decoded_words = []
 
             for di in range(max_length):
-                decoder_output, decoder_hidden, decoder_attention = translator.decoder(
-                    decoder_input, decoder_hidden, encoder_outputs, pg_mat, 1)
+                decoder_output, hidden, decoder_attention = translator.decoder(
+                    decoder_input, hidden, encoder_outputs, pg_mat, 1)
                 topv, topi = decoder_output.data.topk(1)
                 if topi.item() == 1:
                     # decoded_words.append('<EOS>')
