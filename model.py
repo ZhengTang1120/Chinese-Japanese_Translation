@@ -62,7 +62,7 @@ class AttnDecoderRNN(nn.Module):
     def forward(self, input, hidden, encoder_outputs, pg_mat, batch_size):
         embedded = self.embedding(input).view(1, batch_size, -1)
         embedded = self.dropout(embedded)
-        output, hidden = self.rnn(embedded, hidden)
+        output, hidden = self.rnn(embedded, hidden.unsqueeze(0))
         attn_applied = torch.bmm(F.softmax(
             torch.bmm(
                 self.attn(hidden.view(batch_size, 1, -1)), encoder_outputs.permute(1,2,0)
@@ -82,4 +82,4 @@ class AttnDecoderRNN(nn.Module):
         output = torch.cat((output, atten_p),1)
         output = torch.log(output)
 
-        return output, hidden, attn_weights
+        return output, hidden.squeeze(0), attn_weights
