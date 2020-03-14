@@ -256,7 +256,7 @@ if __name__ == '__main__':
             encoder_optimizer.step()
             decoder_optimizer.step()
             # print(input_length, loss.item())
-            total_loss += loss.item() / target_length
+            total_loss += loss.detach().cup().numpy() / target_length
 
         print (timeSince(start))
         print (total_loss)
