@@ -15,7 +15,8 @@ class Translator(nn.Module):
 
     def forward(self, input_tensor, target_tensor, pg_mat, teacher_forcing_ratio = 0.5):
         encoder_outputs, hidden = self.encoder(input_tensor, input_tensor.size(1))
-        outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), pg_mat.size(0)).to(device)
+        outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), 
+            self.decoder.output_size+pg_mat.size(0)).to(device)
         decoder_input = target_tensor[0,:]
         for di in range(1, target_tensor.size(0)):
             decoder_output, hidden, decoder_attention = self.decoder(
