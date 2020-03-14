@@ -64,6 +64,3 @@ class AttnDecoderRNN(nn.Module):
         output = torch.log(output)
 
         return output, hidden, attn_weights
-
-    def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=device)
