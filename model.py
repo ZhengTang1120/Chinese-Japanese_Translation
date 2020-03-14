@@ -38,7 +38,8 @@ class EncoderRNN(nn.Module):
     def forward(self, input, batch_size):
         embedded = self.embedding(input).view(-1, batch_size, self.hidden_size)
         output, hidden = self.rnn(embedded)
-        hidden = torch.tanh(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1))
+        hidden[0] = torch.tanh(torch.cat((hidden[0][-2,:,:], hidden[0][-1,:,:]), dim = 1))
+        hidden[1] = torch.tanh(torch.cat((hidden[1][-2,:,:], hidden[1][-1,:,:]), dim = 1))
         return output, hidden
 
 class AttnDecoderRNN(nn.Module):
