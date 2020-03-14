@@ -215,7 +215,7 @@ if __name__ == '__main__':
             input_length  = input_tensor.size(0)
             target_length = target_tensor.size(0)
             batch_size    = input_tensor.size(1)
-            print (i, batch_size)
+            print (i, batch_size, input_length, target_length)
             encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
 
             decoder_input = torch.zeros(1, batch_size,dtype=torch.long).to(device)
@@ -256,7 +256,7 @@ if __name__ == '__main__':
             decoder_optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy() / target_length
-            torch.cuda.memory_summary()
+            print (torch.cuda.memory_summary())
 
         print (timeSince(start))
         print (total_loss)
