@@ -194,20 +194,20 @@ if __name__ == '__main__':
 
     encoder_optimizer    = optim.Adam(encoder.parameters(), lr=learning_rate)
     decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)
-    criterion = nn.NLLLoss(ignore_index=3)
+    criterion = nn.NLLLoss()
 
     teacher_forcing_ratio = 1
-
-    encoder_optimizer.zero_grad()
-    decoder_optimizer.zero_grad()
     for epoch in range(20):
 
         random.shuffle(training_set)
         
         total_loss = 0
         start = time.time()
+        i = 0
         for input_tensor, target_tensor, pg_mat in training_set:
             loss = 0
+            i += 1
+            print (i)
 
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
@@ -218,8 +218,7 @@ if __name__ == '__main__':
 
             encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
 
-            tensor = torch.tensor((), dtype=torch.int64, device=device)
-            decoder_input = tensor.new_zeros((1, batch_size))
+            decoder_input = torch.from_numpy(np.zeros((1, batch_size)))
             decoder_hidden = (encoder_hidden[0].view(1, batch_size,-1), encoder_hidden[1].view(1, batch_size,-1))
 
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
