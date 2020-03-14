@@ -15,7 +15,7 @@ class Translator(nn.Module):
 
     def forward(self, input_tensor, target_tensor, pg_mat, teacher_forcing_ratio = 0.5):
         encoder_outputs, hidden = self.encoder(input_tensor, input_tensor.size(1))
-        outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), self.decoder.output_size).to(device)
+        outputs = torch.zeros(target_tensor.size(0), input_tensor.size(1), pg_mat.size(0)).to(device)
         decoder_input = target_tensor[0,:]
         for di in range(1, target_tensor.size(0)):
             decoder_output, hidden, decoder_attention = self.decoder(
@@ -45,10 +45,10 @@ class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
-        self.output_size = output_size + max_length
+        self.output_size = output_size
         self.dropout_p = dropout_p
 
-        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.embedding = nn.Embedding(self.output_size + max_length, self.hidden_size)
         self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size * 2, bias=False)
         self.attn_combine = nn.Linear(self.hidden_size * 4, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
