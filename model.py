@@ -33,12 +33,13 @@ class EncoderRNN(nn.Module):
         self.hidden_size = hidden_size
 
         self.embedding = nn.Embedding(input_size, hidden_size)
-        self.rnn = nn.LSTM(hidden_size, hidden_size, bidirectional=True)
+        self.rnn = nn.GRU(hidden_size, hidden_size, bidirectional=True)
 
     def forward(self, input, batch_size):
         embedded = self.embedding(input).view(-1, batch_size, self.hidden_size)
         output, hidden = self.rnn(embedded)
-        return output, (torch.tanh(torch.cat((hidden[0][-2,:,:], hidden[0][-1,:,:]), dim = 1)), torch.tanh(torch.cat((hidden[1][-2,:,:], hidden[1][-1,:,:]), dim = 1)))
+        hidden = torch.tanh(torch.cat((hidden[-2,:,:], hidden[-1,:,:]), dim = 1))
+        return output, hidden
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, max_length, dropout_p=0.1):
@@ -51,7 +52,7 @@ class AttnDecoderRNN(nn.Module):
         self.attn = nn.Linear(self.hidden_size * 2, self.hidden_size * 2, bias=False)
         self.attn_combine = nn.Linear(self.hidden_size * 4, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.rnn = nn.LSTM(self.hidden_size, self.hidden_size * 2)
+        self.rnn = nn.GRU(self.hidden_size, self.hidden_size * 2)
         self.out = nn.Linear(self.hidden_size, self.output_size)
 
         self.wh = nn.Linear(self.hidden_size * 2, 1, bias=False)
@@ -64,15 +65,15 @@ class AttnDecoderRNN(nn.Module):
         output, hidden = self.rnn(embedded, hidden)
         attn_applied = torch.bmm(F.softmax(
             torch.bmm(
-                self.attn(hidden[0].view(batch_size, 1, -1)), encoder_outputs.permute(1,2,0)
+                self.attn(hidden.view(batch_size, 1, -1)), encoder_outputs.permute(1,2,0)
                 )
             , dim=2),
                                  encoder_outputs.permute(1,0,2)).view(batch_size, -1)
-        output = torch.cat((hidden[0].view( batch_size,-1), attn_applied), 1)
+        output = torch.cat((hidden.view( batch_size,-1), attn_applied), 1)
         output = self.attn_combine(output)
         output = F.softmax(self.out(output), dim=1)
 
-        p_gen = torch.sigmoid(self.wh(attn_applied) + self.ws(hidden[0].view( batch_size,-1)) + self.wx(embedded[0]))
+        p_gen = torch.sigmoid(self.wh(attn_applied) + self.ws(hidden.view( batch_size,-1)) + self.wx(embedded[0]))
         
         pg_mat = (pg_mat.view(batch_size, -1)*(torch.ones(batch_size, 1, dtype=torch.int64, device=device)-p_gen)).view(batch_size, pg_mat.size(1), -1)
         atten_p = torch.bmm(attn_weights, pg_mat).view(batch_size, -1)
