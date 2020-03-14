@@ -207,7 +207,7 @@ if __name__ == '__main__':
         for input_tensor, target_tensor, pg_mat in training_set:
             loss = 0
             i += 1
-            print (i)
+            
 
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
@@ -215,7 +215,7 @@ if __name__ == '__main__':
             input_length  = input_tensor.size(0)
             target_length = target_tensor.size(0)
             batch_size    = input_tensor.size(1)
-
+            print (i, batch_size)
             encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
 
             decoder_input = torch.zeros(1, batch_size,dtype=torch.long).to(device)
