@@ -214,8 +214,8 @@ if __name__ == '__main__':
             optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy()
-            # print (torch.cuda.memory_summary())
-            # torch.cuda.empty_cache()
+            print (torch.cuda.memory_summary())
+            torch.cuda.empty_cache()
 
         print (timeSince(start))
         print (total_loss)
