@@ -163,7 +163,6 @@ if __name__ == '__main__':
                     batch = list()
             if len(batch)!=0:
                 batches.append(batch)
-    print (len(batches))
     training_set = list()                 
     for batch in batches:
         chi_tensors = list()
@@ -218,7 +217,7 @@ if __name__ == '__main__':
             print (i, batch_size, input_length, target_length)
             encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
 
-            decoder_input = torch.zeros(1, batch_size,dtype=torch.long).to(device)
+            decoder_input = torch.zeros(1, batch_size,dtype=torch.long, device=device)
             decoder_hidden = (encoder_hidden[0].view(1, batch_size,-1), encoder_hidden[1].view(1, batch_size,-1))
 
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
