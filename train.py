@@ -218,7 +218,7 @@ if __name__ == '__main__':
 
             encoder_outputs, encoder_hidden = encoder(input_tensor, batch_size)
 
-            decoder_input = torch.zeros(1, batch_size,dtype=torch.long)
+            decoder_input = torch.zeros(1, batch_size,dtype=torch.long).to(device)
             decoder_hidden = (encoder_hidden[0].view(1, batch_size,-1), encoder_hidden[1].view(1, batch_size,-1))
 
             use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
