@@ -199,6 +199,8 @@ if __name__ == '__main__':
         i = 0
         for input_tensor, target_tensor, pg_mat in training_set:
             i += 1
+
+            print (i, input_tensor.size(1), input_tensor.size(0), target_tensor.size(0))
             
             output = translator(input_tensor, target_tensor, pg_mat)
             output_dim = output.shape[-1]
