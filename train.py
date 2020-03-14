@@ -192,9 +192,8 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(translator.parameters())
     criterion = nn.NLLLoss()
-    translator.train()
     for epoch in range(20):
-
+        translator.train()
         random.shuffle(training_set)
         
         total_loss = 0
