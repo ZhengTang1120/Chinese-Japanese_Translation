@@ -134,8 +134,6 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            if i == 1000:
-                break
             pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
