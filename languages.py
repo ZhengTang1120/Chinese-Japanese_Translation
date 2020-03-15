@@ -7,7 +7,7 @@ from collections import defaultdict
 k2c = json.load(open("k2c.json", encoding='utf-8'))
 c2k = json.load(open("c2k.json", encoding='utf-8'))
 MAX_LENGTH = 200
-BATCH_SIZE = 128
+BATCH_SIZE = 1
 
 class Lang:
     def __init__(self, name):
