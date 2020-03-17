@@ -1,7 +1,4 @@
-from model import *
-from languages import *
-import argparse
-import os
+from train import *
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
