@@ -23,9 +23,11 @@ if __name__ == '__main__':
             j = fj.readlines()
             for i in range(len(c)):
                 pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
-        pickle.dump((chi_lang, jap_lang, pairs), "corpra")
+        with open("corpra") as f:
+            pickle.dump((chi_lang, jap_lang, pairs), f)
     else:
-        chi_lang, jap_lang, pairs = pickle.load("corpra")
+        with open("corpra") as f:
+            chi_lang, jap_lang, pairs = pickle.load(f)
     test_sents = list()
     with open("dev_dataset/segments.zh", encoding='utf-8') as fc, open("dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
