@@ -129,18 +129,12 @@ if __name__ == '__main__':
     chi_lang_test = Lang("chinese")
     jap_lang_test = Lang("japanese")
 
-    if not os.path.exists("corpra"):
-        pairs = list()
-        with open("existing_parallel/segments.zh", encoding='utf-8') as fc, open("existing_parallel/segments.ja", encoding='utf-8') as fj:
-            c = fc.readlines()
-            j = fj.readlines()
-            for i in range(len(c)):
-                pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
-        with open("corpra", "ab") as f:
-            pickle.dump((chi_lang, jap_lang, pairs), f)
-    else:
-        with open("corpra") as f:
-            chi_lang, jap_lang, pairs = pickle.load(f)
+    pairs = list()
+    with open("existing_parallel/segments.zh", encoding='utf-8') as fc, open("existing_parallel/segments.ja", encoding='utf-8') as fj:
+        c = fc.readlines()
+        j = fj.readlines()
+        for i in range(len(c)):
+            pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
     
     test_sents = list()
     with open(args.corpra_dir+"/dev_dataset/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/dev_dataset/segments.ja", encoding='utf-8') as fj:
