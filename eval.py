@@ -14,7 +14,7 @@ if __name__ == '__main__':
     jap_lang_test = Lang("japanese")
 
     pairs = list()
-    with open(args.corpra_dir+"/existing_parallel/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/existing_parallel/segments.ja", encoding='utf-8') as fj:
+    with open("existing_parallel/segments.zh", encoding='utf-8') as fc, open("existing_parallel/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
