@@ -18,8 +18,7 @@ class Lang:
     def addSentence(self, sentence):
         if self.name == "japanese":
             for word in mecab.parse(sentence).split():
-                if word not in k2c:
-                    self.addWord(word)
+                self.addWord(word)
             return mecab.parse(sentence).split()
         elif self.name == "chinese":
             for word in jieba.cut(sentence):
