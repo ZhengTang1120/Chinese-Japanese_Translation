@@ -7,6 +7,19 @@ if __name__ == '__main__':
     parser.add_argument('epoch')
     args = parser.parse_args()
 
+    chi_lang = Lang("chinese")
+    jap_lang = Lang("japanese")
+
+    chi_lang_test = Lang("chinese")
+    jap_lang_test = Lang("japanese")
+
+    pairs = list()
+    with open(args.corpra_dir+"/existing_parallel/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/existing_parallel/segments.ja", encoding='utf-8') as fj:
+        c = fc.readlines()
+        j = fj.readlines()
+        for i in range(len(c)):
+            pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
+
     test_sents = list()
     with open("dev_dataset/segments.zh", encoding='utf-8') as fc, open("dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
