@@ -136,7 +136,7 @@ if __name__ == '__main__':
             j = fj.readlines()
             for i in range(len(c)):
                 pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
-        with open("corpra") as f:
+        with open("corpra", "ab") as f:
             pickle.dump((chi_lang, jap_lang, pairs), f)
     else:
         with open("corpra") as f:
