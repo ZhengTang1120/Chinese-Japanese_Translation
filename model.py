@@ -23,7 +23,7 @@ class Decoder(nn.Module):
     def __init__(self, hidden_size, num_layers, output_size, max_length, norm=None):
         super(Decoder, self).__init__()
 
-        self.embedding = nn.Embedding(output_size + max_length, hidden_size)
+        self.embedding = nn.Embedding(output_size, hidden_size)
 
         decoder_layer = DecoderLayer(d_model=hidden_size, nhead=4)
         self.layers = _get_clones(decoder_layer, num_layers)
@@ -34,7 +34,7 @@ class Decoder(nn.Module):
         self.wh = nn.Linear(hidden_size, 1, bias=False)
         self.wx = nn.Linear(hidden_size, 1)
 
-    def forward(self, tgt, memory, pg_mat, tgt_mask=None,
+    def forward(self, tgt, memory, tgt_mask=None,
                 memory_mask=None, tgt_key_padding_mask=None,
                 memory_key_padding_mask=None):
 
@@ -48,11 +48,11 @@ class Decoder(nn.Module):
                                     memory_key_padding_mask=memory_key_padding_mask)
         if self.norm:
             output = self.norm(output)
-        p_gen = torch.sigmoid(self.wh(output[-1][0]) + self.wx(embedded[0][-1]))[0]
-        atten_p = torch.mm(attn_weights.view(1, -1), pg_mat*(1-p_gen))
+        # p_gen = torch.sigmoid(self.wh(output[-1][0]) + self.wx(embedded[0][-1]))[0]
+        # atten_p = torch.mm(attn_weights.view(1, -1), pg_mat*(1-p_gen))
         output = F.softmax(self.out(output[-1]), dim=1)
-        output = output * p_gen
-        output = torch.cat((output, atten_p),1)
+        # output = output * p_gen
+        # output = torch.cat((output, atten_p),1)
         output = torch.log(output)
 
         return output

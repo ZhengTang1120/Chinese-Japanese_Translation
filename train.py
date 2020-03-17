@@ -74,8 +74,8 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
     with torch.no_grad():
         input_tensor = tensorFromSentence(input_lang, sentence)
         input_length = input_tensor.size()[0]
-        pg_mat, id2source = get_pgmat(output_lang, sentence)
-        pg_mat = torch.tensor(pg_mat, dtype=torch.float, device=device)
+        # pg_mat, id2source = get_pgmat(output_lang, sentence)
+        # pg_mat = torch.tensor(pg_mat, dtype=torch.float, device=device)
 
         encoder_outputs = encoder(input_tensor)
 
@@ -84,7 +84,7 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
         decoded_words = []
 
         for di in range(max_length):
-            decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
+            decoder_output = decoder(decoder_input, encoder_outputs)
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == 1:
                 # decoded_words.append('<EOS>')
@@ -92,12 +92,12 @@ def evaluate(encoder, decoder, sentence, input_lang, output_lang, max_length=100
             else:
                 if topi.item() in output_lang.index2word and topi.item() > 2:
                     decoded_words.append(output_lang.index2word[topi.item()])
-                elif topi.item() in id2source:
-                    sourceword = id2source[topi.item()]
-                    if sourceword in c2k:
-                        decoded_words.append(c2k[sourceword])
-                    else:
-                        decoded_words.append(sourceword)
+                # elif topi.item() in id2source:
+                #     sourceword = id2source[topi.item()]
+                #     if sourceword in c2k:
+                #         decoded_words.append(c2k[sourceword])
+                #     else:
+                #         decoded_words.append(sourceword)
                 else:
                     topv, topi = decoder_output.data[:,3:output_lang.n_words].topk(1)
                     decoded_words.append(output_lang.index2word[topi.item()])
@@ -133,9 +133,10 @@ if __name__ == '__main__':
         chi_sent = pair[0]
         jap_sent = pair[1]
         chi_tensor = tensorFromSentence(chi_lang, chi_sent)
-        jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent)
-        jap_tensor              = tensorFromIndexes(jids)
-        training_set.append((chi_tensor, jap_tensor, torch.tensor(pg_mat, dtype=torch.float, device=device), id2source))
+        jap_tensor = tensorFromSentence(jap_lang, jap_sent)
+        # jids, pg_mat, id2source = makeOutputIndexes(jap_lang, jap_sent, chi_sent)
+        # jap_tensor              = tensorFromIndexes(jids)
+        training_set.append((chi_tensor, jap_tensor))
     learning_rate = 0.001
     hidden_size = 256
 
@@ -160,7 +161,7 @@ if __name__ == '__main__':
         random.shuffle(training_set)
         total_loss = 0
         start = time.time()
-        for input_tensor, target_tensor, pg_mat, id2source in training_set:
+        for input_tensor, target_tensor in training_set:
             loss = 0
 
             encoder_optimizer.zero_grad()
@@ -178,14 +179,14 @@ if __name__ == '__main__':
             if use_teacher_forcing:
                 # Teacher forcing: Feed the target as the next input
                 for di in range(target_length):
-                    decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
+                    decoder_output = decoder(decoder_input, encoder_outputs)
                     loss += criterion(decoder_output, target_tensor[di])
                     decoder_input = torch.cat((decoder_input, target_tensor[di].unsqueeze(0)),0)
 
             else:
                 # Without teacher forcing: use its own predictions as the next input
                 for di in range(target_length):
-                    decoder_output = decoder(decoder_input, encoder_outputs, pg_mat)
+                    decoder_output = decoder(decoder_input, encoder_outputs)
                     topv, topi = decoder_output.topk(1)
                     decoder_input = torch.cat((decoder_input, topi.squeeze().detach().view(1, 1)),0)
                     loss += criterion(decoder_output, target_tensor[di])
