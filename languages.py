@@ -3,6 +3,7 @@ import MeCab
 mecab = MeCab.Tagger ("-Owakati")
 import json
 from collections import defaultdict
+import pickle
 
 k2c = json.load(open("k2c.json", encoding='utf-8'))
 c2k = json.load(open("c2k.json", encoding='utf-8'))
