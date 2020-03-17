@@ -139,8 +139,8 @@ if __name__ == '__main__':
     learning_rate = 0.001
     hidden_size = 256
 
-    encoder    = Encoder(chi_lang.n_words, hidden_size, 8).to(device)
-    decoder    = Decoder(hidden_size, 8, jap_lang.n_words, 100).to(device)
+    encoder    = Encoder(chi_lang.n_words, hidden_size, 4).to(device)
+    decoder    = Decoder(hidden_size, 4, jap_lang.n_words, 100).to(device)
 
     encoder_optimizer    = optim.Adam(encoder.parameters(), lr=learning_rate)
     decoder_optimizer    = optim.Adam(decoder.parameters(), lr=learning_rate)

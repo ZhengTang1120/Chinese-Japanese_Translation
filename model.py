@@ -11,7 +11,7 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.embedding = nn.Embedding(input_size, hidden_size)
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_size, nhead=8)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_size, nhead=4)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
 
     def forward(self, input):
@@ -25,7 +25,7 @@ class Decoder(nn.Module):
 
         self.embedding = nn.Embedding(output_size + max_length, hidden_size)
 
-        decoder_layer = DecoderLayer(d_model=hidden_size, nhead=8)
+        decoder_layer = DecoderLayer(d_model=hidden_size, nhead=4)
         self.layers = _get_clones(decoder_layer, num_layers)
         self.num_layers = num_layers
         self.norm = norm
@@ -60,7 +60,7 @@ class Decoder(nn.Module):
 
 class DecoderLayer(nn.Module):
 
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation="relu"):
+    def __init__(self, d_model, nhead, dim_feedforward=512, dropout=0.1, activation="relu"):
         super(DecoderLayer, self).__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         self.multihead_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
