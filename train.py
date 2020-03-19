@@ -109,8 +109,8 @@ def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGT
                             decoded_words.append(sourceword)
                     else:
                         print(len(output_lang.index2word))
-                        print(len(id2source))
-                        print(len(sentence[0]))
+                        print(len(id2source), id2source)
+                        print(len(sentence[0]), sentence[0])
                         print(topi.item())
 
 
