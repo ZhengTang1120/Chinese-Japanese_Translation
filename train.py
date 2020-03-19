@@ -103,11 +103,13 @@ def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGT
                             decoded_words.append(output_lang.index2word[topi.item()+3])
                     elif topi.item() in id2source:
                         sourceword = id2source[topi.item()]
-                        if sourceword in c2k:
-                            decoded_words.append(c2k[sourceword])
-                        else:
-                            decoded_words.append(sourceword)
+                        if sourceword != '\n':
+                            if sourceword in c2k:
+                                decoded_words.append(c2k[sourceword])
+                            else:
+                                decoded_words.append(sourceword)
                     else:
+                        print(decoder_output.size())
                         print(len(output_lang.index2word))
                         print(len(id2source), id2source)
                         print(len(sentence[0]), sentence[0])
@@ -231,6 +233,5 @@ if __name__ == '__main__':
         torch.save(encoder, PATH+"/encoder")
         torch.save(decoder, PATH+"/decoder")
         with open("model/%d"%epoch+"/preds.txt", "w") as f:
-            print(len(preds))
             for pred in preds:
                 f.write(pred+'\n')
