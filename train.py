@@ -231,5 +231,6 @@ if __name__ == '__main__':
         torch.save(encoder, PATH+"/encoder")
         torch.save(decoder, PATH+"/decoder")
         with open("model/%d"%epoch+"/preds.txt", "w") as f:
+            print(len(preds))
             for pred in preds:
                 f.write(pred+'\n')
