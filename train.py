@@ -38,7 +38,7 @@ def tensorFromSentence(lang, sentence):
 def makeOutputIndexes(lang, output, input, pad_length):
     sourceset = {}
     id2source = {}
-    pg_mat = np.ones((pad_length + 1, pad_length + 1)) * 1e-10
+    pg_mat = np.ones((pad_length, pad_length)) * 1e-10
     for i, word in enumerate(input):
         if word not in sourceset:
             sourceset[word] = lang.n_words + len(sourceset)
@@ -62,7 +62,7 @@ def makeOutputIndexes(lang, output, input, pad_length):
 def get_pgmat(lang, input):
     sourceset = {}
     id2source = {}
-    pg_mat = np.ones((len(input) + 1, len(input) + 1)) * 1e-10
+    pg_mat = np.ones((len(input), len(input))) * 1e-10
     for i, word in enumerate(input):
         if word not in sourceset:
             sourceset[word] = lang.n_words + len(sourceset)
@@ -72,7 +72,6 @@ def get_pgmat(lang, input):
 
 def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
     translator.eval()
-    print(len(sentences))
     for sentence in sentences:
         sentence = sentence[0]
         with torch.no_grad():
@@ -109,12 +108,7 @@ def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGT
                             else:
                                 decoded_words.append(sourceword)
                     else:
-                        print(decoder_output.size())
-                        print(len(output_lang.index2word))
-                        print(len(id2source), id2source)
-                        print(len(sentence[0]), sentence[0])
-                        print(topi.item())
-
+                        pass
 
                 decoder_input = topi.squeeze().detach()
 
@@ -140,14 +134,16 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
+            if i<100:
+                pairs.append((chi_lang.addSentence(c[i].strip()), jap_lang.addSentence(j[i].strip())))
     
     test_sents = list()
     with open(args.corpra_dir+"/dev_dataset/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            test_sents.append((chi_lang_test.addSentence(c[i]), jap_lang_test.addSentence(j[i])))
+            if i < 100:
+                test_sents.append((chi_lang_test.addSentence(c[i].strip()), jap_lang_test.addSentence(j[i].strip())))
 
     # batches = list(sort_and_batch(pairs, BATCH_SIZE))
 
@@ -171,7 +167,7 @@ if __name__ == '__main__':
         jap_tensors = list()
         pad_i_len = len(batch[0][0])
         pad_o_len = len(batch[0][1])
-        pg_mats   = np.ones((len(batch), pad_i_len + 1, pad_i_len + 1)) * 1e-10
+        pg_mats   = np.ones((len(batch), pad_i_len, pad_i_len)) * 1e-10
         for i, pair in enumerate(batch):
             chi_sent = pair[0]
             jap_sent = pair[1]
@@ -205,8 +201,6 @@ if __name__ == '__main__':
         i = 0
         for input_tensor, target_tensor, pg_mat in training_set:
             i += 1
-
-            print (i, input_tensor.size(1), input_tensor.size(0), target_tensor.size(0))
             
             output = translator(input_tensor, target_tensor, pg_mat)
             output_dim = output.shape[-1]
@@ -222,14 +216,14 @@ if __name__ == '__main__':
             optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy()
-            print (torch.cuda.memory_summary())
-            torch.cuda.empty_cache()
+            # print (torch.cuda.memory_summary())
+            # torch.cuda.empty_cache()
 
         print (timeSince(start))
         print (total_loss)
-        preds = predict(translator, test_sents[:10], chi_lang, jap_lang, max_length=100)
-        os.mkdir("model/%d"%epoch)
-        PATH = "model/%d"%epoch
+        preds = predict(translator, test_sents, chi_lang, jap_lang, max_length=100)
+        os.mkdir("model2/%d"%epoch)
+        PATH = "model2/%d"%epoch
         torch.save(encoder, PATH+"/encoder")
         torch.save(decoder, PATH+"/decoder")
         with open("model/%d"%epoch+"/preds.txt", "w") as f:

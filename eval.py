@@ -18,13 +18,13 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            pairs.append((chi_lang.addSentence(c[i]), jap_lang.addSentence(j[i])))
+            pairs.append((chi_lang.addSentence(c[i].strip()), jap_lang.addSentence(j[i].strip())))
     test_sents = list()
     with open("dev_dataset/segments.zh", encoding='utf-8') as fc, open("dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            test_sents.append((chi_lang_test.addSentence(c[i]), jap_lang_test.addSentence(j[i])))
+            test_sents.append((chi_lang_test.addSentence(c[i].strip()), jap_lang_test.addSentence(j[i].strip())))
 
 
     encoder = torch.load(PATH+"/encoder")

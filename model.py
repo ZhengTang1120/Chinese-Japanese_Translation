@@ -87,10 +87,9 @@ class AttnDecoderRNN(nn.Module):
         p_gen = torch.sigmoid(self.wh(attn_applied) + self.ws(hidden.view( batch_size,-1)) + self.wx(embedded[0]))
         
         pg_mat = (pg_mat.view(batch_size, -1)*(torch.ones(batch_size, 1, dtype=torch.int64, device=device)-p_gen)).view(batch_size, pg_mat.size(1), -1)
-        atten_p = torch.bmm(attn_weights, pg_mat).view(batch_size, -1)
+        atten_p = torch.bmm(attn_weights[:,:,:-1], pg_mat).view(batch_size, -1)
         output = output * p_gen
 
         output = torch.cat((output, atten_p),1)
         output = torch.log(output)
-
         return output, hidden, attn_weights
