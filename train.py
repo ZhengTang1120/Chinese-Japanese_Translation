@@ -72,6 +72,7 @@ def get_pgmat(lang, input):
 
 def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGTH):
     translator.eval()
+    print(len(sentences))
     for sentence in sentences:
         sentence = sentence[0]
         with torch.no_grad():
@@ -107,7 +108,10 @@ def predict(translator, sentences, input_lang, output_lang, max_length=MAX_LENGT
                         else:
                             decoded_words.append(sourceword)
                     else:
-                        print ("Error")
+                        print(len(output_lang.index2word))
+                        print(len(id2source))
+                        print(len(sentence[0]))
+                        print(topi.item())
 
 
                 decoder_input = topi.squeeze().detach()
