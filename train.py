@@ -6,6 +6,15 @@ import math
 import argparse
 from torch.nn.utils.rnn import pad_sequence
 
+def has_err(x):
+    return bool(((x != x) | (x == float("inf")) | (x == float("-inf"))).any().item())
+
+def check_grad_err(model):
+    for param in model.parameters():
+        if has_err(param.grad):
+            return True
+    return False
+
 def asMinutes(s):
     m = math.floor(s / 60)
     s -= m * 60
@@ -134,16 +143,14 @@ if __name__ == '__main__':
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            if i<100:
-                pairs.append((chi_lang.addSentence(c[i].strip()), jap_lang.addSentence(j[i].strip())))
+            pairs.append((chi_lang.addSentence(c[i].strip()), jap_lang.addSentence(j[i].strip())))
     
     test_sents = list()
     with open(args.corpra_dir+"/dev_dataset/segments.zh", encoding='utf-8') as fc, open(args.corpra_dir+"/dev_dataset/segments.ja", encoding='utf-8') as fj:
         c = fc.readlines()
         j = fj.readlines()
         for i in range(len(c)):
-            if i < 100:
-                test_sents.append((chi_lang_test.addSentence(c[i].strip()), jap_lang_test.addSentence(j[i].strip())))
+            test_sents.append((chi_lang_test.addSentence(c[i].strip()), jap_lang_test.addSentence(j[i].strip())))
 
     # batches = list(sort_and_batch(pairs, BATCH_SIZE))
 
@@ -212,8 +219,11 @@ if __name__ == '__main__':
 
             clipping_value = 1#arbitrary number of your choosing
             torch.nn.utils.clip_grad_norm_(translator.parameters(), clipping_value)
-
-            optimizer.step()
+            
+            if check_grad_err(translator):
+                pass
+            else:
+                optimizer.step()
             # print(input_length, loss.item())
             total_loss += loss.detach().cpu().numpy()
             # print (torch.cuda.memory_summary())
